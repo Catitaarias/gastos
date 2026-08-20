@@ -491,6 +491,7 @@ function haceCuanto(d){
 }
 function subtitulo(){
   if(cargando) return;
+  if(colaLeer().length){ marcarPendientes(); return; }
   var v = document.querySelector('nav button.on');
   var base = {resumen:MESES[HOY.getMonth()]+' '+HOY.getFullYear(),
     calendario:'toca un día para ver el detalle', agregar:'completa y guarda',
@@ -509,7 +510,8 @@ function cargar(manual, propagar){
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(!d.ok) throw new Error(d.error||'Respuesta inesperada');
-      aplicar(d); ultimaCarga = Date.now();
+      if(!colaLeer().length){ aplicar(d); }   // no pisar lo que aún no se manda
+      ultimaCarga = Date.now();
       cargando=false; document.getElementById('btnSync').classList.remove('spin');
       subtitulo();
       if(manual) toast('Datos actualizados');
@@ -523,8 +525,8 @@ function cargar(manual, propagar){
     });
 }
 
-function enviar(cuerpo, txt){
-  velo(true, txt);
+/* Manda algo a Google y devuelve la respuesta ya revisada. */
+function postear(cuerpo){
   return fetch(API.url, {
       method:'POST', redirect:'follow',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -532,16 +534,63 @@ function enviar(cuerpo, txt){
     })
     .then(function(r){ return r.json(); })
     .then(function(d){
-      velo(false);
-      if(!d.ok) throw new Error(d.error||'Respuesta inesperada');
-      aplicar(d); ultimaCarga = Date.now(); subtitulo();
+      if(!d.ok){ var e = new Error(d.error||'Respuesta inesperada'); e.servidor = true; throw e; }
       return d;
-    })
-    .catch(function(err){
-      velo(false);
-      toast('No se pudo guardar: '+err.message, true);
-      throw err;
     });
+}
+
+/* Con espera en pantalla. Solo para cosas raras: tope, nombres, categorías. */
+function enviar(cuerpo, txt){
+  velo(true, txt);
+  return postear(cuerpo)
+    .then(function(d){ velo(false); aplicar(d); ultimaCarga=Date.now(); subtitulo(); return d; })
+    .catch(function(err){ velo(false); toast('No se pudo guardar: '+err.message, true); throw err; });
+}
+
+/* ---- Cola de pendientes ----------------------------------------------
+   Los gastos se ven en pantalla al instante y viajan a Google por detrás.
+   La cola queda guardada en el celular: si se corta el internet o cierras
+   la app a medio camino, se manda sola cuando vuelvas a abrirla.        */
+var enviandoCola = false;
+function nuevoId(){
+  try{ if(crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+  return 'g-'+Date.now()+'-'+Math.round(Math.random()*1e9);
+}
+function colaLeer(){ try{ return JSON.parse(guardado('cola_gastos')||'[]'); }catch(e){ return []; } }
+function colaGuardar(a){ guardar('cola_gastos', JSON.stringify(a)); }
+function encolar(cuerpo){
+  cuerpo._k = nuevoId();
+  var a = colaLeer(); a.push(cuerpo); colaGuardar(a);
+  marcarPendientes(); procesarCola();
+}
+function marcarPendientes(){
+  var n = colaLeer().length;
+  if(n) estado((n===1?'Guardando 1 gasto…':'Guardando '+n+' gastos…'),'busy');
+  else subtitulo();
+}
+function procesarCola(){
+  if(enviandoCola || !API.clave) return;
+  var a = colaLeer();
+  if(!a.length){ marcarPendientes(); return; }
+  enviandoCola = true;
+  var item = a[0];
+  postear(item).then(function(d){
+    var b = colaLeer().filter(function(x){ return x._k !== item._k; });
+    colaGuardar(b); enviandoCola = false;
+    if(b.length){ marcarPendientes(); procesarCola(); }
+    else { aplicar(d); ultimaCarga = Date.now(); marcarPendientes(); }
+  }).catch(function(err){
+    enviandoCola = false;
+    if(err.servidor){
+      // Google rechazó el dato: no sirve reintentar, lo sacamos y resincronizamos.
+      colaGuardar(colaLeer().filter(function(x){ return x._k !== item._k; }));
+      toast('Google rechazó el gasto: '+err.message, true);
+      marcarPendientes(); cargar();
+    } else {
+      estado('Sin internet · '+colaLeer().length+' por guardar','err');
+      setTimeout(procesarCola, 15000);
+    }
+  });
 }
 
 function aplicar(d){
@@ -881,22 +930,30 @@ function guardarGasto(){
     anotado_por: NOM[YO_SOY]
   };
   var editando = !!editandoId;
-  enviar({accion: editando?'editar':'agregar', gasto:g}, editando?'Guardando cambios…':'Guardando en tu hoja…')
-    .then(function(){
-      editandoId = null; salirEdicion(true);
-      toast((editando?'Cambios guardados · ':'Gasto guardado · ')+clp(monto));
-      ir('resumen');
-    })
-    .catch(function(){});
+  if(!editando) g.id = nuevoId();
+
+  // 1) se ve al tiro en pantalla
+  var local = { id:g.id, fecha:g.fecha, f:fecha(g.fecha), monto:g.monto,
+    desc:g.descripcion, cat:g.categoria, tipo:g.tipo, dueno:g.dueno,
+    pagador:g.pagador, pago:g.forma_pago, lugar:g.lugar };
+  var i = -1;
+  for(var k=0;k<GASTOS.length;k++){ if(GASTOS[k].id===g.id){ i=k; break; } }
+  if(i>=0) GASTOS[i] = local; else GASTOS.push(local);
+
+  editandoId = null; salirEdicion(true); refrescar(); ir('resumen');
+  toast((editando?'Cambios guardados · ':'Gasto guardado · ')+clp(monto));
+
+  // 2) y viaja a Google por detrás
+  encolar({accion: editando?'editar':'agregar', gasto:g});
 }
 function pedirBorrar(){
   var b = document.getElementById('btnBorrar');
   if(b.dataset.armado){
     var id = editandoId;
-    enviar({accion:'borrar', id:id}, 'Borrando…').then(function(){
-      delete b.dataset.armado; b.textContent='Borrar este gasto';
-      salirEdicion(true); toast('Gasto borrado'); ir('resumen');
-    }).catch(function(){});
+    GASTOS = GASTOS.filter(function(x){ return x.id!==id; });
+    delete b.dataset.armado; b.textContent='Borrar este gasto';
+    salirEdicion(true); refrescar(); ir('resumen'); toast('Gasto borrado');
+    encolar({accion:'borrar', id:id});
   } else {
     b.dataset.armado = '1';
     b.textContent = '¿Seguro? Toca de nuevo para borrar';
@@ -947,7 +1004,7 @@ function refrescar(){ pintarResumen(); pintarCalendario(); pintarLista(); pintar
 document.getElementById('fFecha').value = iso(HOY);
 refrescar();
 API.clave = guardado('clave_gastos') || '';
-if(API.clave){ cargar(); }
+if(API.clave){ procesarCola(); cargar(); }
 else { document.getElementById('login').classList.add('on'); }
 document.getElementById('inClave').addEventListener('keydown', function(e){
   if(e.key==='Enter') entrar(); });
@@ -957,8 +1014,11 @@ if('serviceWorker' in navigator){
 }
 setInterval(function(){ if(!document.hidden && !cargando) subtitulo(); }, 30000);
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && ultimaCarga && Date.now()-ultimaCarga>30000) cargar();
+  if(document.hidden) return;
+  if(colaLeer().length) procesarCola();
+  else if(ultimaCarga && Date.now()-ultimaCarga>30000) cargar();
 });
+window.addEventListener('online', procesarCola);
 </script>
 </body>
 </html>
