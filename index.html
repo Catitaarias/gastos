@@ -340,10 +340,12 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
   </div>
   <div class="card">
     <h3>Personas</h3>
-    <div class="field" style="margin-bottom:12px"><label>Yo</label>
+    <div class="field" style="margin-bottom:12px"><label id="lbYo">Persona 1</label>
       <input type="text" id="sYo" onchange="setNombre('nombre_yo',this.value)"></div>
-    <div class="field" style="margin-bottom:0"><label>Mi pareja</label>
+    <div class="field" style="margin-bottom:0"><label id="lbPareja">Persona 2</label>
       <input type="text" id="sPareja" onchange="setNombre('nombre_pareja',this.value)"></div>
+    <p style="font-size:11.5px;color:var(--muted);margin:12px 0 0">
+      Estos nombres son los mismos para los dos celulares.</p>
   </div>
   <div class="card">
     <h3>Conexión</h3>
@@ -389,6 +391,15 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
   <button class="btn" style="margin-top:12px" onclick="entrar()">Entrar</button>
 </div></div>
 
+<div class="login" id="quien"><div class="box">
+  <div class="mark"><svg viewBox="0 0 24 24" width="26" height="26" fill="none"
+    stroke="#3987e5" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8.2" r="3.6"/><path d="M4.6 20c0-4 3.3-6.2 7.4-6.2s7.4 2.2 7.4 6.2"/></svg></div>
+  <h2>¿Quién usa este celular?</h2>
+  <p>Sirve para anotar quién pagó cada gasto. Se elige una sola vez;
+     después se puede cambiar en Ajustes.</p>
+  <div class="seg two" id="qBotones"></div>
+</div></div>
+
 <script>
 /* ==================================================================
    CONEXIÓN CON GOOGLE SHEETS
@@ -430,7 +441,10 @@ function cambiarClave(){
 var GASTOS = [], CATS = [], CONFIG = {};
 var NOM = {yo:'Caty', pareja:'Arbin'};
 var TOPE = 900000;
-var YO_SOY = 'yo';                       // quién usa este celular
+/* Quién usa ESTE celular. Se guarda en el propio celular (no en la hoja),
+   porque cada teléfono tiene su dueño distinto. */
+var YO_SOY = (guardado('yo_soy_gastos')==='pareja') ? 'pareja' : 'yo';
+var YO_SOY_ELEGIDO = !!guardado('yo_soy_gastos');
 var ultimaCarga = null, cargando = false;
 
 var POOL = ['var(--s5)','var(--s6)','var(--s7)','var(--s8)','var(--s1)','var(--s2)','var(--s3)','var(--s4)'];
@@ -609,6 +623,7 @@ function aplicar(d){
   document.getElementById('estadoConn').textContent =
     'Conectado. '+GASTOS.length+' gastos en la hoja.';
   refrescar();
+  preguntarQuien();   // solo la primera vez en cada celular
 }
 
 /* ================= navegación ================= */
@@ -858,7 +873,8 @@ function pintarLista(){
 }
 
 /* ================= formulario ================= */
-var form = {tipo:'Variable', dueno:'Hogar', pagador:'yo', pago:'Débito'};
+var form = {tipo:'Variable', dueno:'Hogar', pagador:YO_SOY, pago:'Débito'};
+var pagadorPrevio = null;   // para no arrastrar el pagador de un gasto editado
 function segs(id, opts, key, etiquetar){
   document.getElementById(id).innerHTML = opts.map(function(o){
     return '<button class="'+(form[key]===o?'on':'')+'" onclick="setForm(\''+key+'\',\''+jsq(o)+'\')">' +
@@ -876,7 +892,28 @@ function pintarForm(){
   document.getElementById('fYoSoy').innerHTML = ['yo','pareja'].map(function(k){
     return '<button class="'+(YO_SOY===k?'on':'')+'" onclick="setYoSoy(\''+k+'\')">'+esc(NOM[k])+'</button>'; }).join('');
 }
-function setYoSoy(k){ YO_SOY=k; form.pagador=k; pintarForm(); toast('Este celular es de '+NOM[k]); }
+function setYoSoy(k){
+  YO_SOY = k;
+  YO_SOY_ELEGIDO = true;
+  guardar('yo_soy_gastos', k);          // queda en este celular para siempre
+  if(!editandoId) form.pagador = k;
+  pintarForm();
+  toast('Listo: este celular es de '+NOM[k]);
+}
+/* Pantalla que aparece una sola vez, la primera vez que se abre la app. */
+function pintarQuien(){
+  document.getElementById('qBotones').innerHTML = ['yo','pareja'].map(function(k){
+    return '<button onclick="elegirYoSoy(\''+k+'\')">'+esc(NOM[k])+'</button>'; }).join('');
+}
+function elegirYoSoy(k){
+  setYoSoy(k);
+  document.getElementById('quien').classList.remove('on');
+}
+function preguntarQuien(){
+  if(YO_SOY_ELEGIDO) return;
+  pintarQuien();
+  document.getElementById('quien').classList.add('on');
+}
 
 document.getElementById('fMonto').addEventListener('input', function(e){
   var n = e.target.value.replace(/\D/g,'');
@@ -893,6 +930,7 @@ function abrirGasto(id){
   document.getElementById('fFecha').value = x.fecha;
   document.getElementById('fLugar').value = x.lugar;
   form.tipo = x.tipo; form.dueno = x.dueno; form.pago = x.pago;
+  if(pagadorPrevio===null) pagadorPrevio = form.pagador;
   form.pagador = (x.pagador===NOM.pareja) ? 'pareja' : 'yo';
   pintarForm();
   document.getElementById('fCat').value = x.cat;
@@ -904,6 +942,7 @@ function abrirGasto(id){
 }
 function salirEdicion(silencio){
   editandoId = null;
+  if(pagadorPrevio!==null){ form.pagador = pagadorPrevio; pagadorPrevio = null; pintarForm(); }
   ['fMonto','fDesc','fLugar'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('fFecha').value = iso(HOY);
   document.getElementById('btnGuardar').textContent = 'Guardar gasto';
@@ -992,6 +1031,8 @@ function pintarAjustes(){
   document.getElementById('sTope').value = clp(TOPE);
   document.getElementById('sYo').value = NOM.yo;
   document.getElementById('sPareja').value = NOM.pareja;
+  document.getElementById('lbYo').textContent = 'Cómo se llama ' + NOM.yo;
+  document.getElementById('lbPareja').textContent = 'Cómo se llama ' + NOM.pareja;
   document.getElementById('catList').innerHTML = CATS.length ? CATS.map(function(c){
     return '<div class="catedit"><span class="sw" style="background:'+c.c+'"></span>' +
       '<span class="nm">'+esc(c.e)+' '+esc(c.n)+'</span>' +
