@@ -226,6 +226,36 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
 .login .err{color:var(--critical);font-size:13px;margin-top:10px;min-height:18px}
 .login .mark{width:54px;height:54px;border-radius:15px;background:var(--surface);
   border:1px solid var(--ring);display:grid;place-items:center;margin-bottom:16px}
+
+/* ===== Análisis ===== */
+.tiles.two{grid-template-columns:1fr 1fr}
+.tile .n{font-size:11px;color:var(--muted);margin-top:2px}
+.an-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.col .stack{width:100%;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;
+  overflow:hidden;min-height:3px;background:var(--surface-2)}
+.col .stack span{display:block}
+.col.curso2 .stack{opacity:.55}
+.chart.densa .lbl{display:none}
+.xaxis.densa div{font-size:9px}
+.tbl-wrap{overflow-x:auto;margin:0 -16px;padding:0 16px;-webkit-overflow-scrolling:touch}
+table.an{border-collapse:separate;border-spacing:0;font-size:12px;font-variant-numeric:tabular-nums;min-width:100%}
+table.an th,table.an td{padding:7px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
+table.an th{font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+table.an th:first-child,table.an td:first-child{position:sticky;left:0;background:var(--surface);text-align:left;
+  max-width:118px;overflow:hidden;text-overflow:ellipsis;z-index:1;padding-left:0}
+table.an td.prom,table.an th.prom{font-weight:600;color:var(--ink);border-left:1px solid var(--grid)}
+table.an td.cero{color:var(--axis)}
+table.an tr.tot td{font-weight:600;border-bottom:none;color:var(--ink)}
+table.an th.cur{color:var(--ink-2)}
+.cambio{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--grid)}
+.cambio:last-child{border-bottom:none}
+.cambio .c1{min-width:0}
+.cambio .c1 b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cambio .c1 span{display:block;font-size:11.5px;color:var(--muted)}
+.cambio .c2{font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.subh{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 2px}
+.subh:first-of-type{margin-top:0}
+.nota-an{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -368,6 +398,12 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
 </main>
 
 <!-- ============ AJUSTES ============ -->
+<!-- ============ ANÁLISIS ============ -->
+<main id="v-analisis">
+  <div class="an-chips" id="anChips"></div>
+  <div id="anBody"></div>
+</main>
+
 <main id="v-ajustes">
   <div class="card">
     <h3>¿Quién usa este celular?<span class="hint">Se usa para anotar quién pagó</span></h3>
@@ -415,6 +451,8 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2"/><path d="M12 8v8M8 12h8"/></svg><span>Agregar</span></button>
   <button data-v="gastos" onclick="ir('gastos')">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar</span></button>
+  <button data-v="analisis" onclick="ir('analisis')">
+    <svg viewBox="0 0 24 24"><path d="M3 20h18"/><path d="M5 16l4.5-5 3.5 3L19 6"/><path d="M15 6h4v4"/></svg><span>Análisis</span></button>
   <button data-v="ajustes" onclick="ir('ajustes')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .32 1.77l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.77-.32 1.6 1.6 0 0 0-1 1.47V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.47 1.6 1.6 0 0 0-1.77.32l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 4.6 15a1.6 1.6 0 0 0-1.47-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.47-1 1.6 1.6 0 0 0-.32-1.77l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.6 1.6 0 0 0 9 4.6a1.6 1.6 0 0 0 1-1.47V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.47 1.6 1.6 0 0 0 1.77-.32l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.6 1.6 0 0 0 19.4 9a1.6 1.6 0 0 0 1.47 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.47 1z"/></svg><span>Ajustes</span></button>
 </div></nav>
@@ -555,7 +593,7 @@ function subtitulo(){
   var v = document.querySelector('nav button.on');
   var base = {resumen:MESES[HOY.getMonth()]+' '+HOY.getFullYear(),
     calendario:'toca un día para ver el detalle', agregar:'completa y guarda',
-    gastos:'por producto, mes o tipo', ajustes:'personaliza tu app'};
+    gastos:'por producto, mes o tipo', analisis:'cómo se mueve el gasto mes a mes', ajustes:'personaliza tu app'};
   var k = v?v.dataset.v:'resumen';
   estado(base[k]+' · sincronizado '+haceCuanto(ultimaCarga));
 }
@@ -674,7 +712,7 @@ function aplicar(d){
 
 /* ================= navegación ================= */
 var TITULOS = {resumen:'Resumen', calendario:'Calendario', agregar:'Nuevo gasto',
-  gastos:'Buscar gastos', ajustes:'Ajustes'};
+  gastos:'Buscar gastos', analisis:'Análisis', ajustes:'Ajustes'};
 function ir(v){
   if(v!=='agregar' && editandoId) salirEdicion(true);
   var mains = document.querySelectorAll('main');
@@ -684,7 +722,7 @@ function ir(v){
   document.getElementById('hTitle').textContent = editandoId?'Editar gasto':TITULOS[v];
   subtitulo();
   window.scrollTo(0,0);
-  if((v==='resumen'||v==='calendario'||v==='gastos') && ultimaCarga && Date.now()-ultimaCarga>30000) cargar();
+  if((v==='resumen'||v==='calendario'||v==='gastos'||v==='analisis') && ultimaCarga && Date.now()-ultimaCarga>30000) cargar();
 }
 
 /* ================= resumen ================= */
@@ -791,6 +829,177 @@ function pintarGraficoMensual(){
   document.getElementById('trend').innerHTML = linea;
 }
 function verMes(y,m){ flt.mes = y+'-'+dos(m); setQ(''); ir('gastos'); }
+
+
+/* ================= análisis ================= */
+var anN = 6;     // cuántos meses mirar (0 = todo, hasta 24)
+function setAnN(n){ anN = n; pintarAnalisis(); }
+
+function mesesAn(){
+  var n = anN;
+  if(!n){
+    var min = null;
+    GASTOS.forEach(function(x){ if(!isNaN(x.f) && (!min || x.f<min)) min = x.f; });
+    n = min ? (HOY.getFullYear()-min.getFullYear())*12 + HOY.getMonth()-min.getMonth() + 1 : 1;
+    n = Math.max(1, Math.min(n, 24));
+  }
+  var out = [];
+  for(var i=n-1;i>=0;i--){
+    var d = new Date(HOY.getFullYear(), HOY.getMonth()-i, 1), k = mkeyDe(d);
+    out.push({ y:d.getFullYear(), m:d.getMonth(), k:k, curso:i===0,
+      g: GASTOS.filter(function(x){ return mkey(x.f)===k; }) });
+  }
+  return out;
+}
+function deCat(arr, c){ return arr.filter(function(x){ return x.cat===c; }); }
+
+function splitHtml(datos, total){
+  var barra = datos.filter(function(d){return d.v>0;}).map(function(d){
+    return '<span style="width:'+pct(d.v,total)+'%;background:'+d.c+'"></span>'; }).join('');
+  var leyenda = datos.filter(function(d){return d.v>0;}).map(function(d){
+    return '<span><i style="background:'+d.c+'"></i>'+esc(d.k)+' <b>'+clp(d.v)+'</b> · '+Math.round(pct(d.v,total))+'%</span>'; }).join('');
+  return '<div class="split">'+barra+'</div><div class="legend">'+leyenda+'</div>';
+}
+function apiladasHtml(ms, partes){
+  var max = Math.max.apply(null, ms.map(function(m){ return suma(m.g); }).concat([1]));
+  var densa = ms.length>12 ? ' densa' : '';
+  var cols = ms.map(function(m){
+    var t = suma(m.g);
+    return '<div class="col'+(m.curso?' curso2':'')+'" onclick="verMes('+m.y+','+m.m+')">' +
+      '<span class="lbl">'+(t?kclp(t):'—')+'</span>' +
+      '<span class="stack" style="height:'+Math.max(3,t/max*100)+'%">' +
+      partes.map(function(p){ var v = suma(m.g.filter(p.f));
+        return v ? '<span style="flex:'+v+';background:'+p.c+'"></span>' : ''; }).join('') +
+      '</span></div>';
+  }).join('');
+  var eje = ms.map(function(m){
+    return '<div class="'+(m.curso?'now':'')+'">'+(ms.length>12?MESC[m.m].charAt(0).toUpperCase():MESC[m.m])+'</div>'; }).join('');
+  var ley = partes.map(function(p){ return '<span><i style="background:'+p.c+'"></i>'+esc(p.k)+'</span>'; }).join('');
+  return '<div class="chart'+densa+'">'+cols+'</div><div class="xaxis'+densa+'">'+eje+'</div>' +
+    '<div class="legend" style="margin-top:12px">'+ley+'</div>';
+}
+
+function pintarAnalisis(){
+  var cont = document.getElementById('anBody');
+  if(!cont) return;
+  document.getElementById('anChips').innerHTML =
+    [[3,'3 meses'],[6,'6 meses'],[12,'12 meses'],[0,'Todo']].map(function(o){
+      return '<button class="chip'+(anN===o[0]?' on':'')+'" onclick="setAnN('+o[0]+')">'+o[1]+'</button>'; }).join('');
+  if(!GASTOS.length){
+    cont.innerHTML = '<div class="card"><div class="empty">Cuando anoten gastos, aquí aparece el análisis mes a mes.</div></div>';
+    return;
+  }
+  var ms = mesesAn(), todos = [];
+  ms.forEach(function(m){ todos = todos.concat(m.g); });
+  var tot = suma(todos);
+  var cerr = ms.filter(function(m){ return !m.curso && m.g.length; });
+  var base = cerr.length ? cerr : ms.filter(function(m){ return m.g.length; });
+  var promMes = base.length ? base.reduce(function(s,m){ return s+suma(m.g); },0)/base.length : 0;
+  var h = '';
+
+  /* 1. Resumen del período */
+  var extra = '';
+  if(cerr.length>=2){
+    var alto = cerr.reduce(function(a,m){ return suma(m.g)>suma(a.g)?m:a; });
+    var bajo = cerr.reduce(function(a,m){ return suma(m.g)<suma(a.g)?m:a; });
+    extra = '<div class="nota-an">Entre los meses cerrados, el más alto fue <b>'+MESES[alto.m]+'</b> ('+clp(suma(alto.g))+
+      ') y el más bajo <b>'+MESES[bajo.m]+'</b> ('+clp(suma(bajo.g))+').</div>';
+  }
+  h += '<div class="card"><h3>Resumen del período</h3><div class="tiles two">' +
+    '<div class="tile"><div class="k">Total</div><div class="v">'+clp(tot)+'</div></div>' +
+    '<div class="tile"><div class="k">Promedio por mes</div><div class="v">'+clp(promMes)+'</div>' +
+      '<div class="n">'+(cerr.length?'de '+cerr.length+' mes'+(cerr.length>1?'es':'')+' cerrado'+(cerr.length>1?'s':''):'solo mes en curso')+'</div></div>' +
+    '<div class="tile"><div class="k">Gastos anotados</div><div class="v">'+todos.length+'</div></div>' +
+    '<div class="tile"><div class="k">Promedio por gasto</div><div class="v">'+clp(todos.length?tot/todos.length:0)+'</div></div>' +
+    '</div>'+extra+'</div>';
+
+  /* 2. Mes a mes: fijo vs variable */
+  h += '<div class="card"><h3>Mes a mes: fijos y variables' +
+    '<span class="hint">Toca una barra para ver el detalle de ese mes</span></h3>' +
+    apiladasHtml(ms, [
+      {k:'Fijo',     c:'var(--s7)', f:function(x){ return x.tipo==='Fijo'; }},
+      {k:'Variable', c:'var(--s4)', f:function(x){ return x.tipo!=='Fijo'; }}
+    ]) + '<div class="nota-an">El mes en curso se ve más claro porque aún no termina.</div></div>';
+
+  /* 3. Quién aportó / quién pagó */
+  var dCol = {'Mío':'var(--s1)','De mi pareja':'var(--s5)','Hogar':'var(--s3)'};
+  var pYo = suma(todos.filter(function(x){ return x.pagador===NOM.yo; }));
+  var pPa = suma(todos.filter(function(x){ return x.pagador===NOM.pareja; }));
+  h += '<div class="card"><h3>De quién son los gastos</h3>' +
+    splitHtml(DUENOS.map(function(d){ return {k:nombrar(d), v:suma(todos.filter(function(x){return x.dueno===d;})), c:dCol[d]}; }), tot) +
+    '<div class="subh" style="margin-top:16px">Quién puso la plata</div>' +
+    splitHtml([{k:NOM.yo,v:pYo,c:'var(--s1)'},{k:NOM.pareja,v:pPa,c:'var(--s5)'},
+      {k:'Sin dato',v:Math.max(0,tot-pYo-pPa),c:'var(--axis)'}], tot) + '</div>';
+
+  /* 4. Categorías mes a mes */
+  var nombres = CATS.map(function(c){ return c.n; });
+  todos.forEach(function(x){ if(x.cat && nombres.indexOf(x.cat)<0) nombres.push(x.cat); });
+  var filas = nombres.map(function(n){
+    return { n:n, tot:suma(deCat(todos,n)),
+      prom: base.length ? base.reduce(function(s,m){ return s+suma(deCat(m.g,n)); },0)/base.length : 0 };
+  }).filter(function(r){ return r.tot>0; }).sort(function(a,b){ return b.tot-a.tot; });
+  if(filas.length){
+    var cab = '<tr><th>Categoría</th>' + ms.map(function(m){
+      return '<th class="'+(m.curso?'cur':'')+'">'+MESC[m.m]+(m.curso?'*':'')+'</th>'; }).join('') + '<th class="prom">Prom.</th></tr>';
+    var cuerpo = filas.map(function(r){
+      return '<tr><td><i class="dot" style="display:inline-block;margin-right:6px;background:'+catColor(r.n)+'"></i>'+esc(r.n)+'</td>' +
+        ms.map(function(m){ var v = suma(deCat(m.g,r.n));
+          return '<td class="'+(v?'':'cero')+'">'+(v?kclp(v):'·')+'</td>'; }).join('') +
+        '<td class="prom">'+kclp(r.prom)+'</td></tr>';
+    }).join('');
+    var pie = '<tr class="tot"><td>Total</td>' + ms.map(function(m){ var v=suma(m.g);
+      return '<td>'+(v?kclp(v):'·')+'</td>'; }).join('') + '<td class="prom">'+kclp(promMes)+'</td></tr>';
+    h += '<div class="card"><h3>Categorías mes a mes<span class="hint">Montos en pesos (k = miles, M = millones). Desliza hacia el lado si no cabe.</span></h3>' +
+      '<div class="tbl-wrap"><table class="an"><thead>'+cab+'</thead><tbody>'+cuerpo+pie+'</tbody></table></div>' +
+      '<div class="nota-an">* mes en curso, no entra en el promedio.</div></div>';
+  }
+
+  /* 5. Qué cambió en el último mes cerrado */
+  if(cerr.length>=2){
+    var ult = cerr[cerr.length-1], prev = cerr.slice(0,-1);
+    var difs = nombres.map(function(n){
+      var u = suma(deCat(ult.g,n));
+      var a = prev.reduce(function(s,m){ return s+suma(deCat(m.g,n)); },0)/prev.length;
+      return { n:n, u:u, a:a, d:u-a };
+    }).filter(function(r){ return Math.abs(r.d)>=1000; });
+    var sube = difs.filter(function(r){return r.d>0;}).sort(function(a,b){return b.d-a.d;}).slice(0,3);
+    var baja = difs.filter(function(r){return r.d<0;}).sort(function(a,b){return a.d-b.d;}).slice(0,3);
+    var fila = function(r){
+      return '<div class="cambio"><div class="c1"><b>'+catEmoji(r.n)+' '+esc(r.n)+'</b>' +
+        '<span>'+MESC[ult.m]+': '+clp(r.u)+' · promedio antes: '+clp(r.a)+'</span></div>' +
+        '<div class="c2" style="color:'+(r.d>0?'var(--serious)':'var(--good)')+'">'+(r.d>0?'▲ +':'▼ −')+clp(Math.abs(r.d))+'</div></div>';
+    };
+    if(sube.length||baja.length){
+      h += '<div class="card"><h3>Qué cambió en '+MESES[ult.m]+'<span class="hint">Comparado con el promedio de '+
+        (prev.length>1?'los '+prev.length+' meses cerrados anteriores':'el mes cerrado anterior')+'</span></h3>' +
+        (sube.length?'<div class="subh">Subió</div>'+sube.map(fila).join(''):'') +
+        (baja.length?'<div class="subh">Bajó</div>'+baja.map(fila).join(''):'') + '</div>';
+    }
+  }
+
+  /* 6. Dónde se gasta */
+  var lug = {};
+  todos.forEach(function(x){
+    var nm = String(x.lugar||'').trim(); if(!nm) return;
+    var k = norm(nm); if(!lug[k]) lug[k] = {n:nm, v:0, c:0};
+    lug[k].v += x.monto; lug[k].c++;
+  });
+  var tl = Object.keys(lug).map(function(k){ return lug[k]; }).sort(function(a,b){ return b.v-a.v; }).slice(0,6);
+  h += '<div class="card"><h3>Dónde se gasta<span class="hint">Los lugares con más gasto en el período</span></h3>';
+  if(!tl.length){
+    h += '<div style="font-size:13px;color:var(--muted)">Todavía no hay lugares anotados en este período.</div>';
+  } else {
+    var mx = Math.max.apply(null, tl.map(function(l){return l.v;}).concat([1]));
+    h += tl.map(function(l){
+      return '<div class="catrow"><span class="name">'+esc(l.n)+'</span>' +
+        '<span class="val">'+clp(l.v)+' <span style="color:var(--muted);font-weight:400">· '+l.c+' gasto'+(l.c>1?'s':'')+'</span></span>' +
+        '<span class="track"><span class="fill" style="width:'+(l.v/mx*100)+'%;background:var(--s3)"></span></span></div>';
+    }).join('');
+  }
+  h += '</div>';
+
+  cont.innerHTML = h;
+}
 
 /* ================= calendario ================= */
 function cambiarMes(n){ calM+=n; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} selDia=null; pintarCalendario(); }
@@ -1160,7 +1369,7 @@ function pintarAjustes(){
 }
 
 /* ================= arranque ================= */
-function refrescar(){ pintarResumen(); pintarCalendario(); pintarLista(); pintarForm(); pintarAjustes(); }
+function refrescar(){ pintarResumen(); pintarAnalisis(); pintarCalendario(); pintarLista(); pintarForm(); pintarAjustes(); }
 document.getElementById('fFecha').value = iso(HOY);
 refrescar();
 API.clave = guardado('clave_gastos') || '';
