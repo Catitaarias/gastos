@@ -277,6 +277,12 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
 <!-- ============ AGREGAR ============ -->
 <main id="v-agregar">
   <div class="card">
+    <div id="bloqueEscaneo" style="margin-bottom:18px">
+      <button class="btn ghost" id="btnEscanear" style="font-size:16px;padding:15px;font-weight:600;color:var(--ink)"
+              onclick="document.getElementById('fBoleta').click()">Escanear boleta</button>
+      <input type="file" id="fBoleta" accept="image/*" style="display:none" onchange="leerBoleta(this)">
+      <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0">Saca una foto a la boleta y se llenan los datos solos. Revísalos antes de guardar.</p>
+    </div>
     <div class="field">
       <label>Monto (CLP)</label>
       <input type="text" inputmode="numeric" id="fMonto" class="amount-input" placeholder="$0">
@@ -937,6 +943,7 @@ function abrirGasto(id){
   document.getElementById('btnGuardar').textContent = 'Guardar cambios';
   document.getElementById('btnBorrar').style.display = 'block';
   document.getElementById('btnCancelar').style.display = 'block';
+  document.getElementById('bloqueEscaneo').style.display = 'none';
   ir('agregar');
   document.getElementById('hTitle').textContent = 'Editar gasto';
 }
@@ -949,6 +956,7 @@ function salirEdicion(silencio){
   document.getElementById('btnBorrar').style.display = 'none';
   document.getElementById('btnCancelar').style.display = 'none';
   document.getElementById('hTitle').textContent = 'Nuevo gasto';
+  document.getElementById('bloqueEscaneo').style.display = '';
   if(!silencio) ir('resumen');
 }
 function guardarGasto(){
@@ -984,6 +992,53 @@ function guardarGasto(){
 
   // 2) y viaja a Google por detrás
   encolar({accion: editando?'editar':'agregar', gasto:g});
+}
+/* ---- Escanear boleta ------------------------------------------------
+   La foto se achica en el celular, se manda al puente, y la IA devuelve los
+   datos. Solo se rellena el formulario: no se guarda nada hasta que se toque
+   "Guardar gasto". */
+var escaneando = false;
+function achicarImagen(file, max, calidad){
+  return new Promise(function(ok, mal){
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function(){
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var e = Math.min(1, max/Math.max(w,h));
+      var c = document.createElement('canvas');
+      c.width = Math.round(w*e); c.height = Math.round(h*e);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/jpeg', calidad).split(',')[1]);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); mal(new Error('No pude abrir la foto')); };
+    img.src = url;
+  });
+}
+function rellenarDesdeBoleta(b){
+  var n = 0;
+  if(Number(b.monto) > 0){
+    document.getElementById('fMonto').value = '$'+Math.round(Number(b.monto)).toLocaleString('es-CL'); n++;
+  }
+  if(b.descripcion){ document.getElementById('fDesc').value = String(b.descripcion); n++; }
+  if(/^\d{4}-\d{2}-\d{2}$/.test(b.fecha||'')){ document.getElementById('fFecha').value = b.fecha; n++; }
+  if(b.lugar){ document.getElementById('fLugar').value = String(b.lugar); n++; }
+  if(b.categoria && CATS.some(function(c){ return c.n===b.categoria; })){
+    document.getElementById('fCat').value = b.categoria; n++;
+  }
+  if(n) toast('Revisa los datos y toca Guardar gasto');
+  else toast('No pude leer datos claros. Llénalos a mano.', true);
+}
+function leerBoleta(input){
+  var f = input.files && input.files[0];
+  if(!f || escaneando){ input.value=''; return; }
+  if(!API.clave){ input.value=''; toast('Primero conecta la app con la clave', true); return; }
+  escaneando = true;
+  velo(true, 'Leyendo la boleta…');
+  achicarImagen(f, 2000, 0.8)
+    .then(function(b64){ return postear({accion:'escanear', imagen:b64, mime:'image/jpeg'}); })
+    .then(function(d){ velo(false); rellenarDesdeBoleta(d.boleta||{}); })
+    .catch(function(err){ velo(false); toast('No pude leer la boleta: '+err.message, true); })
+    .then(function(){ escaneando = false; input.value = ''; });
 }
 function pedirBorrar(){
   var b = document.getElementById('btnBorrar');
