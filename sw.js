@@ -2,7 +2,7 @@
    incluso sin internet. Los datos (los gastos) siempre vienen de Google
    Sheets en vivo — eso nunca se cachea. */
 
-const VERSION = 'gastos-v3';
+const VERSION = 'gastos-v4';
 const SHELL = [
   './',
   './index.html',

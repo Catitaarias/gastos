@@ -149,6 +149,22 @@ main.active{display:block}
 .hallazgo .r span:first-child{color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hallazgo .r b{font-variant-numeric:tabular-nums;white-space:nowrap}
 
+.saludo{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+.avatars{display:flex;flex:none}
+.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--plane);box-shadow:0 1px 3px rgba(30,28,25,.18)}
+.av2{margin-left:-14px}
+.saludo-h{font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.25}
+.saludo-s{font-size:12.5px;color:var(--ink-2);margin-top:1px}
+.trendpill{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;border-radius:20px;
+  font-size:12px;font-weight:700;white-space:nowrap;flex:none}
+.trendpill.up{background:#fbe8e0;color:var(--serious)}
+.trendpill.down{background:#e1f0e6;color:var(--good)}
+.trendpill.flat{background:var(--surface-2);color:var(--muted)}
+.rango{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.rango input{flex:1;padding:10px;font-size:13.5px}
+.rango-y{color:var(--muted);font-size:13px;flex:none}
+.rango-x{color:var(--muted);font-size:20px;padding:0 4px;line-height:1;flex:none}
+
 label{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .field{margin-bottom:15px}
 input[type=text],input[type=number],input[type=date],select,textarea{
@@ -227,9 +243,22 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
 
 <!-- ============ RESUMEN ============ -->
 <main id="v-resumen" class="active">
+  <div class="saludo">
+    <div class="avatars">
+      <img class="av av1" src="avatar-caty.jpg" alt="Caty">
+      <img class="av av2" src="avatar-arbin.jpg" alt="Arbin">
+    </div>
+    <div>
+      <div class="saludo-h">Hola, Arbin y Caty 👋</div>
+      <div class="saludo-s">Hogar al día · gastos conjuntos</div>
+    </div>
+  </div>
   <div class="card">
-    <div class="hero-label">Gastado este mes · todos</div>
-    <div class="hero" id="mesTotal">$0</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+      <div><div class="hero-label">Gastado este mes · todos</div>
+      <div class="hero" id="mesTotal">$0</div></div>
+      <span class="trendpill" id="mesTrend" style="margin-top:3px"></span>
+    </div>
     <div class="budget-row" style="margin-top:12px">
       <span>Tope mensual</span><span id="topeTxt" style="font-variant-numeric:tabular-nums"></span>
     </div>
@@ -320,6 +349,13 @@ nav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;st
     <button class="x" onclick="setQ('')">×</button>
   </div>
   <div class="fltlabel">Mes</div><div class="filters" id="fltMes"></div>
+  <div class="fltlabel">O un rango de fechas <span class="optional">(opcional)</span></div>
+  <div class="rango">
+    <input type="date" id="fDesde" onchange="setRango('desde', this.value)">
+    <span class="rango-y">–</span>
+    <input type="date" id="fHasta" onchange="setRango('hasta', this.value)">
+    <button class="rango-x" id="btnLimpiarRango" onclick="limpiarRango()" style="display:none" title="Quitar rango">×</button>
+  </div>
   <div class="fltlabel">De quién</div><div class="filters" id="fltDueno"></div>
   <div class="fltlabel">Tipo y categoría</div>
   <div class="filters" id="fltTipo"></div><div class="filters" id="fltCat"></div>
@@ -465,7 +501,7 @@ var PAGOS  = ['Débito','Crédito','Transferencia','Efectivo'];
 var HOY = new Date(); HOY.setHours(0,0,0,0);
 var calY = HOY.getFullYear(), calM = HOY.getMonth();
 var selDia = null, editandoId = null;
-var flt = {dueno:'Todos', tipo:'Todos', cat:'Todas', mes:mkeyDe(HOY), q:''};
+var flt = {dueno:'Todos', tipo:'Todos', cat:'Todas', mes:mkeyDe(HOY), q:'', desde:'', hasta:''};
 
 /* ================= helpers ================= */
 function clp(n){ return '$' + Math.round(n||0).toLocaleString('es-CL'); }
@@ -652,9 +688,20 @@ function ir(v){
 }
 
 /* ================= resumen ================= */
+function pintarTrend(totActual){
+  var el = document.getElementById('mesTrend');
+  var prevDate = new Date(HOY.getFullYear(), HOY.getMonth()-1, 1);
+  var totPrev = suma(GASTOS.filter(function(x){return mkey(x.f)===mkeyDe(prevDate);}));
+  if(!totPrev){ el.textContent=''; el.className='trendpill'; return; }
+  var cambio = (totActual-totPrev)/totPrev*100;
+  var sube = cambio>=0.5, baja = cambio<=-0.5;
+  el.className = 'trendpill '+(sube?'up':baja?'down':'flat');
+  el.textContent = (sube?'▲ +':baja?'▼ ':'● ')+Math.abs(Math.round(cambio))+'% vs '+MESC[prevDate.getMonth()];
+}
 function pintarResumen(){
   var mes = delMes(), tot = suma(mes);
   document.getElementById('mesTotal').textContent = clp(tot);
+  pintarTrend(tot);
   document.getElementById('tMes').textContent = clp(tot);
   document.getElementById('tHoy').textContent = clp(suma(GASTOS.filter(function(x){return mismoDia(x.f,HOY);})));
   var ini = inicioSemana(HOY);
@@ -817,7 +864,10 @@ function chips(id, opts, key, vals){
     return '<button class="chip'+(flt[key]===val?' on':'')+'" onclick="setFlt(\''+key+'\',\''+jsq(val)+'\')">'+esc(o)+'</button>';
   }).join('');
 }
-function setFlt(k,v){ flt[k]=v; pintarLista(); }
+function setFlt(k,v){ flt[k]=v; if(k==='mes'){ flt.desde=''; flt.hasta=''; } pintarLista(); }
+function setRango(k,v){ flt[k]=v; flt.mes='todos'; pintarLista(); }
+function limpiarRango(){ flt.desde=''; flt.hasta=''; pintarLista(); }
+function fmtFechaCorta(s){ var d=fecha(s); return d.getDate()+' '+MESC[d.getMonth()]; }
 function setQ(v){
   flt.q = v;
   var inp = document.getElementById('q');
@@ -846,6 +896,11 @@ function pintarLista(){
   if(flt.dueno!=='Todos') r = r.filter(function(x){return nombrar(x.dueno)===flt.dueno;});
   if(flt.tipo!=='Todos')  r = r.filter(function(x){return x.tipo===flt.tipo;});
   if(flt.cat!=='Todas')   r = r.filter(function(x){return x.cat===flt.cat;});
+  if(flt.desde) r = r.filter(function(x){return x.fecha>=flt.desde;});
+  if(flt.hasta) r = r.filter(function(x){return x.fecha<=flt.hasta;});
+  document.getElementById('fDesde').value = flt.desde;
+  document.getElementById('fHasta').value = flt.hasta;
+  document.getElementById('btnLimpiarRango').style.display = (flt.desde||flt.hasta) ? 'block' : 'none';
   var q = flt.q.trim();
   if(q){ var nq = norm(q);
     r = r.filter(function(x){ return norm(x.desc).indexOf(nq)>=0 || norm(x.lugar).indexOf(nq)>=0 || norm(x.cat).indexOf(nq)>=0; }); }
@@ -868,8 +923,13 @@ function pintarLista(){
       '<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Del más barato al más caro, con la última compra en cada lugar. Ojo: es el total de la boleta, no del producto suelto.</div></div>';
   } else h.innerHTML = '';
 
-  var etMes = flt.mes==='todos' ? 'en todo el historial'
-            : 'en '+(ms.filter(function(m){return m.k===flt.mes;})[0]||{et:''}).et;
+  var etMes;
+  if(flt.desde || flt.hasta){
+    etMes = 'entre '+(flt.desde?fmtFechaCorta(flt.desde):'el inicio')+' y '+(flt.hasta?fmtFechaCorta(flt.hasta):'hoy');
+  } else {
+    etMes = flt.mes==='todos' ? 'en todo el historial'
+              : 'en '+(ms.filter(function(m){return m.k===flt.mes;})[0]||{et:''}).et;
+  }
   document.getElementById('listaCount').textContent = r.length+' '+(r.length===1?'gasto':'gastos')+' '+etMes;
   document.getElementById('listaTotal').textContent = clp(suma(r));
 
