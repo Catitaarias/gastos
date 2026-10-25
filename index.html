@@ -178,6 +178,8 @@ main.active{display:block}
 .chip{white-space:nowrap;font-size:12.5px;padding:6px 12px;border-radius:20px;
   border:1px solid var(--ring);background:var(--surface);color:var(--ink-2)}
 .chip.on{background:var(--btn);border-color:var(--btn);color:#fff;font-weight:600}
+.avisodup{display:none;background:var(--up-bg);border:1px solid var(--serious);color:var(--ink);border-radius:13px;padding:11px 13px;margin:0 0 14px;font-size:13px;line-height:1.45}
+.avisodup b{color:var(--serious)}
 .hallazgo{background:var(--surface);border:1px solid var(--s4);border-radius:14px;padding:13px 14px;margin-bottom:12px}
 .hallazgo .h{font-size:12.5px;color:var(--s4);font-weight:600;margin-bottom:8px}
 .hallazgo .r{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:4px 0}
@@ -405,6 +407,7 @@ table.an th.cur{color:var(--ink-2)}
       <label>Dónde se compró <span class="optional">(opcional)</span></label>
       <input type="text" id="fLugar" placeholder="Ej: Líder, Sodimac…">
     </div>
+    <div class="avisodup" id="avisoDup"></div>
     <button class="btn" id="btnGuardar" onclick="guardarGasto()">Guardar gasto</button>
     <button class="btn danger" id="btnBorrar" style="display:none" onclick="pedirBorrar()">Borrar este gasto</button>
     <button class="btn ghost" id="btnCancelar" style="display:none;margin-top:10px" onclick="salirEdicion()">Cancelar</button>
@@ -1270,11 +1273,40 @@ function salirEdicion(silencio){
   ['fMonto','fDesc','fLugar'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('fFecha').value = iso(HOY);
   document.getElementById('btnGuardar').textContent = 'Guardar gasto';
+  dupFirma = null; avisoDuplicado(null);
   document.getElementById('btnBorrar').style.display = 'none';
   document.getElementById('btnCancelar').style.display = 'none';
   document.getElementById('hTitle').textContent = 'Nuevo gasto';
   document.getElementById('bloqueEscaneo').style.display = '';
   if(!silencio) ir('resumen');
+}
+/* ---- Aviso de gasto repetido ----------------------------------------
+   Busca un gasto ya anotado con la misma fecha y el mismo monto. No bloquea:
+   avisa, y si se toca "Guardar igual" se guarda de todos modos. */
+var dupFirma = null;   // fecha|monto que ya se aceptó guardar igual
+function buscarIgual(fechaTxt, monto, exceptoId){
+  for(var k=0;k<GASTOS.length;k++){
+    var x = GASTOS[k];
+    if(x.id!==exceptoId && x.fecha===fechaTxt && Number(x.monto)===Number(monto)) return x;
+  }
+  return null;
+}
+function avisoDuplicado(x){
+  var c = document.getElementById('avisoDup');
+  if(!x){ c.style.display='none'; c.innerHTML=''; return; }
+  c.innerHTML = '<b>Ojo: puede estar repetido.</b> Ya hay un gasto de <b>'+clp(x.monto)+'</b> el '+
+    esc(fmtFechaCorta(x.fecha))+': '+esc(x.desc)+(x.lugar?' · '+esc(x.lugar):'')+'.';
+  c.style.display='block';
+}
+function revisarDuplicado(){
+  if(editandoId){ avisoDuplicado(null); return null; }
+  var monto = +document.getElementById('fMonto').value.replace(/\D/g,'');
+  var x = monto ? buscarIgual(document.getElementById('fFecha').value, monto, null) : null;
+  avisoDuplicado(x);
+  var b = document.getElementById('btnGuardar');
+  var firma = x ? document.getElementById('fFecha').value+'|'+monto : null;
+  if(firma!==dupFirma){ dupFirma = null; if(!editandoId) b.textContent = 'Guardar gasto'; }
+  return x;
 }
 function guardarGasto(){
   var monto = +document.getElementById('fMonto').value.replace(/\D/g,'');
@@ -1282,6 +1314,18 @@ function guardarGasto(){
   var desc = document.getElementById('fDesc').value.trim();
   if(!desc){ toast('Anota qué se compró', true); document.getElementById('fDesc').focus(); return; }
   if(!CATS.length){ toast('No hay categorías. Revisa la conexión.', true); return; }
+
+  if(!editandoId){
+    var igual = revisarDuplicado();
+    var firma = document.getElementById('fFecha').value+'|'+monto;
+    if(igual && dupFirma!==firma){
+      dupFirma = firma;
+      document.getElementById('btnGuardar').textContent = 'Guardar igual';
+      toast('Ya hay un gasto igual. Toca "Guardar igual" si es otro.', true);
+      return;
+    }
+  }
+  dupFirma = null; avisoDuplicado(null);
 
   var g = {
     id: editandoId || undefined,
@@ -1347,7 +1391,8 @@ function rellenarDesdeBoleta(b){
   if(b.categoria && CATS.some(function(c){ return c.n===b.categoria; })){
     document.getElementById('fCat').value = b.categoria; n++;
   }
-  if(n) toast('Revisa los datos y toca Guardar gasto');
+  if(revisarDuplicado()) toast('Esta boleta parece ya anotada. Revisa el aviso.', true);
+  else if(n) toast('Revisa los datos y toca Guardar gasto');
   else toast('No pude leer datos claros. Llénalos a mano.', true);
 }
 function leerBoleta(input){
@@ -1430,6 +1475,8 @@ function pintarAjustes(){
 /* ================= arranque ================= */
 function refrescar(){ pintarResumen(); pintarAnalisis(); pintarCalendario(); pintarLista(); pintarForm(); pintarAjustes(); }
 document.getElementById('fFecha').value = iso(HOY);
+['fMonto','fFecha'].forEach(function(id){ document.getElementById(id).addEventListener('change', revisarDuplicado); });
+document.getElementById('fMonto').addEventListener('blur', revisarDuplicado);
 refrescar();
 API.clave = guardado('clave_gastos') || '';
 if(API.clave){ procesarCola(); cargar(); }
