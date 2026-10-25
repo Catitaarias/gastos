@@ -2,14 +2,16 @@
    incluso sin internet. Los datos (los gastos) siempre vienen de Google
    Sheets en vivo — eso nunca se cachea. */
 
-const VERSION = 'gastos-v5';
+const VERSION = 'gastos-v6';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './icon-maskable-512.png'
+  './icon-maskable-512.png',
+  './avatar-caty.jpg',
+  './avatar-arbin.jpg'
 ];
 
 self.addEventListener('install', e => {

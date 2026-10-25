@@ -6,6 +6,23 @@
 <title>Gastos del Hogar</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#fdf8f4">
+<script>
+/* Tema: 'auto' (sigue al celular), 'claro' u 'oscuro'. Se guarda en este celular. */
+var TEMA = 'auto';
+try { TEMA = localStorage.getItem('tema_gastos') || 'auto'; } catch(e){}
+var MQ_OSCURO = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+function aplicarTema(){
+  var oscuro = TEMA==='oscuro' || (TEMA==='auto' && MQ_OSCURO && MQ_OSCURO.matches);
+  document.documentElement.setAttribute('data-theme', oscuro ? 'dark' : 'light');
+  var m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.setAttribute('content', oscuro ? '#171512' : '#fdf8f4');
+}
+aplicarTema();
+if (MQ_OSCURO) {
+  var _f = function(){ if (TEMA==='auto') aplicarTema(); };
+  if (MQ_OSCURO.addEventListener) MQ_OSCURO.addEventListener('change', _f); else MQ_OSCURO.addListener(_f);
+}
+</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -26,6 +43,24 @@
   --good:#1c6b4d; --warn:#ad8400; --serious:#c2662c; --critical:#ba1a1a;
   --q0:#f1ece5; --q1:#d1e6d9; --q2:#a4cdb7; --q3:#73a98c; --q4:#3c7257; --q5:#113a2a;
   --shadow-card:0 1px 2px rgba(30,28,25,.04),0 6px 18px rgba(30,28,25,.06);
+  --btn:#1c6b4d; --btn-shadow:rgba(28,107,77,.22);
+  --glass:rgba(253,248,244,.88); --glass-2:rgba(253,248,244,.92);
+  --up-bg:#fbe8e0; --down-bg:#e1f0e6; --mark:rgba(201,133,0,.32);
+}
+/* ---- Tema oscuro ---- */
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#171512; --surface:#211e1a; --surface-2:#2b2722;
+  --ink:#f1ebe3; --ink-2:#cdc5b9; --muted:#9a9184;
+  --grid:#302b25; --axis:#423b33; --ring:#38322b;
+  --s1:#4fae86; --s2:#e08a4f; --s3:#7ea3d4; --s4:#d8ae33;
+  --s5:#e3849b; --s6:#a6b468; --s7:#ab8cce; --s8:#ee8d78;
+  --good:#4fae86; --warn:#d8ae33; --serious:#e08a4f; --critical:#ff7a6e;
+  --q0:#25221e; --q1:#1f3b2e; --q2:#245540; --q3:#2e7454; --q4:#56a580; --q5:#9ad8b8;
+  --shadow-card:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
+  --btn:#2b8a62; --btn-shadow:rgba(0,0,0,.35);
+  --glass:rgba(23,21,18,.88); --glass-2:rgba(23,21,18,.92);
+  --up-bg:#3d261c; --down-bg:#1c3328; --mark:rgba(216,174,51,.35);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -37,7 +72,7 @@ h1,h2,h3{margin:0;font-weight:600}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 input,select,textarea{font:inherit}
 
-header{position:sticky;top:0;z-index:20;background:rgba(253,248,244,.88);backdrop-filter:blur(14px);
+header{position:sticky;top:0;z-index:20;background:var(--glass);backdrop-filter:blur(14px);
   padding:14px 16px 10px;border-bottom:1px solid var(--grid);
   display:flex;align-items:center;gap:10px}
 header .txt{flex:1;min-width:0}
@@ -109,7 +144,7 @@ main.active{display:block}
 .item .l2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   max-width:100%;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4;
   white-space:normal;overflow:hidden;overflow-wrap:anywhere}
-.item mark{background:rgba(201,133,0,.32);color:var(--ink);border-radius:3px;padding:0 2px}
+.item mark{background:var(--mark);color:var(--ink);border-radius:3px;padding:0 2px}
 .daysep{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;
   margin:16px 0 2px;display:flex;justify-content:space-between}
 .daysep b{color:var(--ink-2);font-variant-numeric:tabular-nums}
@@ -142,7 +177,7 @@ main.active{display:block}
 .filters::-webkit-scrollbar{display:none}
 .chip{white-space:nowrap;font-size:12.5px;padding:6px 12px;border-radius:20px;
   border:1px solid var(--ring);background:var(--surface);color:var(--ink-2)}
-.chip.on{background:var(--s1);border-color:var(--s1);color:#fff;font-weight:600}
+.chip.on{background:var(--btn);border-color:var(--btn);color:#fff;font-weight:600}
 .hallazgo{background:var(--surface);border:1px solid var(--s4);border-radius:14px;padding:13px 14px;margin-bottom:12px}
 .hallazgo .h{font-size:12.5px;color:var(--s4);font-weight:600;margin-bottom:8px}
 .hallazgo .r{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:4px 0}
@@ -151,14 +186,14 @@ main.active{display:block}
 
 .saludo{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
 .avatars{display:flex;flex:none}
-.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--plane);box-shadow:0 1px 3px rgba(30,28,25,.18)}
+.av{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--plane);box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .av2{margin-left:-14px}
 .saludo-h{font-size:16.5px;font-weight:700;color:var(--ink);line-height:1.25}
 .saludo-s{font-size:12.5px;color:var(--ink-2);margin-top:1px}
 .trendpill{display:inline-flex;align-items:center;gap:3px;padding:5px 10px;border-radius:20px;
   font-size:12px;font-weight:700;white-space:nowrap;flex:none}
-.trendpill.up{background:#fbe8e0;color:var(--serious)}
-.trendpill.down{background:#e1f0e6;color:var(--good)}
+.trendpill.up{background:var(--up-bg);color:var(--serious)}
+.trendpill.down{background:var(--down-bg);color:var(--good)}
 .trendpill.flat{background:var(--surface-2);color:var(--muted)}
 .rango{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .rango input{flex:1;padding:10px;font-size:13.5px}
@@ -177,8 +212,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--s1)}
 .seg button{flex:1;min-width:78px;padding:11px 8px;border-radius:13px;border:1px solid var(--ring);
   background:var(--surface-2);font-size:13.5px;color:var(--ink-2);text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.seg button.on{background:var(--s1);border-color:var(--s1);color:#fff;font-weight:600}
-.btn{width:100%;padding:15px;border-radius:16px;background:var(--s1);color:#fff;font-weight:700;font-size:16px;box-shadow:0 4px 14px rgba(28,107,77,.22)}
+.seg button.on{background:var(--btn);border-color:var(--btn);color:#fff;font-weight:600}
+.btn{width:100%;padding:15px;border-radius:16px;background:var(--btn);color:#fff;font-weight:700;font-size:16px;box-shadow:0 4px 14px var(--btn-shadow)}
 .btn[disabled]{opacity:.5}
 .btn.ghost{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--ring);font-weight:500;font-size:14px;padding:12px}
 .btn.danger{background:none;border:1px solid var(--critical);color:var(--critical);font-size:14px;padding:12px;margin-top:10px}
@@ -193,7 +228,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--s1)}
 .addrow input{flex:1}
 .addrow button{padding:0 18px;border-radius:11px;background:var(--surface-2);border:1px solid var(--ring);font-weight:600;color:var(--ink)}
 
-nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(253,248,244,.92);
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--glass-2);
   backdrop-filter:blur(14px);border-top:1px solid var(--grid);
   display:flex;justify-content:center;padding:7px 0 max(7px,env(safe-area-inset-bottom))}
 nav .inner{display:flex;width:100%;max-width:460px}
@@ -413,6 +448,10 @@ table.an th.cur{color:var(--ink-2)}
   <div class="card">
     <h3>¿Quién usa este celular?<span class="hint">Se usa para anotar quién pagó</span></h3>
     <div class="seg two" id="fYoSoy"></div>
+  </div>
+  <div class="card">
+    <h3>Apariencia<span class="hint">Solo para este celular</span></h3>
+    <div class="seg" id="fTema"></div>
   </div>
   <div class="card">
     <h3>Tope mensual</h3>
@@ -1366,7 +1405,16 @@ function borrarCat(n){
   enviar({accion:'categorias', categorias:nuevas}, 'Borrando categoría…')
     .then(function(){ toast('Categoría eliminada'); }).catch(function(){});
 }
+function pintarTema(){
+  document.getElementById('fTema').innerHTML = [['auto','Automático'],['claro','Claro'],['oscuro','Oscuro']].map(function(o){
+    return '<button class="'+(TEMA===o[0]?'on':'')+'" onclick="setTema(\''+o[0]+'\')">'+o[1]+'</button>'; }).join('');
+}
+function setTema(t){
+  TEMA = t; guardar('tema_gastos', t);   // queda en este celular
+  aplicarTema(); pintarTema();
+}
 function pintarAjustes(){
+  pintarTema();
   document.getElementById('sTope').value = clp(TOPE);
   document.getElementById('sYo').value = NOM.yo;
   document.getElementById('sPareja').value = NOM.pareja;
